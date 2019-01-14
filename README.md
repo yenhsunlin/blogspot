@@ -1,2 +1,2 @@
 # blogspot
-Some scripts used in my blog
+Some jupyter notebooks used in my blog: https://yen-hsun.blogspot.com
