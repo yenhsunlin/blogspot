@@ -61,7 +61,7 @@ class imres:
     
     def restore(self):
         """
-        Initializing restoration process
+        Initializing the restoration process
         """         
         # Create an array for posterior
         posterior = deepcopy(self.z)
@@ -84,7 +84,6 @@ class imres:
         psi = np.minimum((((self.cbits - z[r-self.rad:r+(self.rad+1),c-self.rad:c+(self.rad+1)])*self.blanket)**2), \
                          self.cutoff).sum(axis=(1,-1))
         return np.argmin(psi)
-        #self.scratch_pixel = np.argmin(psi)
         
     def gen_blanket(self,radius,element=1):
         """
