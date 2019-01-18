@@ -3,7 +3,7 @@ from copy import deepcopy
 
 class imres:
     """
-    imres(z, mask, cutoff = 1000, bits = 8)
+    imres(z, mask, cutoff = 1000, rad = 3, bits = 8)
     A class for restoring scratched image.
     
     Parameters
@@ -13,7 +13,10 @@ class imres:
       This is different from matplotlib.pyplot.imshow in general.
     mask : a 2D array
       Binary image, masked positions are indicated with 1
-    cutoff: a scalar, the truncated value for the energy function 
+    cutoff: a scalar, the truncated value for the energy function
+    rad : integer
+      Number of the neighbor pixels user wants to include for a given masked pixels, the
+      larger the longer the computational time
     bits : integer
       Represents 2**bits color depth in each RGB channel. Sometimes it refers to 24-bit
       true color, total 1.67M colors.
@@ -21,47 +24,40 @@ class imres:
       restored quality if the input image contains no color with such depth.
     """
     
-    def __init__(self, z, mask, cutoff = 1000, bits = 8):
+    def __init__(self, z, mask, cutoff = 1000, rad = 3, bits = 8):
         """
         Define inputs and parameters
         """        
-        # Dimensions of the image tensor in (H,W,ch)
-        self.r, self.c, self.ch = z.shape              
+        self.r, self.c, self.ch = z.shape
+        self.rad = rad
         
         # Deal with binary mask image: Value greater than 0 indicates the scratch positions
         maskpos = np.where(mask > 0)
-        self.mask = (np.vstack((maskpos[0], maskpos[1])).T + np.array([2,2])).tolist()
+        self.mask = (np.vstack((maskpos[0], maskpos[1])).T + np.array([rad,rad])).tolist()
         
-        # How many pixels we have to correct?
-        self.pixnum = len(maskpos[0])
+        # How many pixels we have to correct? Uncomment this if you want to monitor the change
+        # rate between iterations
+        #self.pixnum = len(maskpos[0])
         
-        # Padding the edges of image tensor with extra 0
-        # eg. (5,5) to (9,9), original image array at center
-        self.z = np.zeros((self.r+4,self.c+4,self.ch), dtype=np.int16)
-        self.z[2:self.r+2,2:self.c+2,] = z
+        # Padding the edges of image array with extra 0
+        self.z = np.zeros((self.r+2*rad,self.c+2*rad,self.ch), dtype=np.int16)
+        self.z[rad:self.r+rad,rad:self.c+rad,] = z
         
-        self.cutoff = np.repeat([[[  0   ,cutoff,cutoff,cutoff,  0   ],   \
-                                  [cutoff,cutoff,cutoff,cutoff,cutoff],   \
-                                  [cutoff,cutoff,  0   ,cutoff,cutoff],   \
-                                  [cutoff,cutoff,cutoff,cutoff,cutoff],   \
-                                  [  0   ,cutoff,cutoff,cutoff,  0   ]]], 2**bits, axis=0)
+        # Generate markov blanket
+        self.blanket = self.gen_blanket(rad)
         
-        # The shape of Markov blanket
-        self.blanket = np.array([[0,1,1,1,0], \
-                                 [1,1,1,1,1], \
-                                 [1,1,0,1,1], \
-                                 [1,1,1,1,1], \
-                                 [0,1,1,1,0]])
+        # Generate cutoff criteria
+        self.cutoff = np.repeat([self.gen_blanket(rad,cutoff)], 2**bits, axis=0)
         
         # Create a (5,5) color level
         self.cbits = []
         for i in range(2**bits):
-            x = np.full((5,5), i, dtype=np.int16)
+            x = np.full((2*rad+1,2*rad+1), i, dtype=np.int16)
             self.cbits.append(x)
         self.cbits = np.array(self.cbits)
         
         # Prior colors for the scratched pixels. Now self.z becomes the prior image
-        self.z[maskpos[0]+2,maskpos[1]+2,] = np.random.randint(0,256,size=(len(maskpos[0]),self.ch))
+        self.z[maskpos[0]+rad,maskpos[1]+rad,] = np.random.randint(0,256,size=(len(maskpos[0]),self.ch))
     
     def restore(self):
         """
@@ -75,7 +71,7 @@ class imres:
                 # Calculate the correct color from prior image and update the posterior
                 posterior[pos[0],pos[1],i] = self.scratch(self.z[:,:,i], pos[0], pos[1])
         
-        # Calculate the change rate between previous and this iterations, uncomment this if you want to monitor
+        # Calculate the change rate between previous and this iterations, uncomment this if you want to monitor it
         #self.change = self.change_rate(self.z, posterior)
         
         # Update the prior by the posterior and can be used for the next iteration
@@ -83,12 +79,25 @@ class imres:
             
     def scratch(self,z,r,c):
         """
-        Function for inferencing the masked pixels, not for stand-alone use
+        Function for inferencing the color of the masked pixels, not for stand-alone use
         """
-        psi = np.minimum((((self.cbits - z[r-2:r+3,c-2:c+3])*self.blanket)**2), self.cutoff).sum(axis=(1,-1))
+        psi = np.minimum((((self.cbits - z[r-self.rad:r+(self.rad+1),c-self.rad:c+(self.rad+1)])*self.blanket)**2), \
+                         self.cutoff).sum(axis=(1,-1))
         return np.argmin(psi)
         #self.scratch_pixel = np.argmin(psi)
         
+    def gen_blanket(self,radius,element=1):
+        """
+        Generate Markov blanket with given radius (how many neighbor pixels)
+        If the element not equals 1, it is used to generate the cutoff criteria
+        Not for stand-alone use
+        """
+        x, y = np.mgrid[0:2*radius+1,0:2*radius+1]
+        blanket = ((x - radius)**2 + (y - radius)**2 <= radius**2)*element
+        blanket[radius,radius] = 0
+        return blanket
+    
+    # Uncomment the following if you want to monitor the change rate between iterations
     #def change_rate(self,prior,posterior):
     #    """
     #    Calculate the change rate between the prior and posterior images, not for stand-alone use
@@ -99,4 +108,4 @@ class imres:
         """
         Return the current status of the restored image
         """
-        return self.z[2:self.r+2,2:self.c+2]
+        return self.z[self.rad:self.r+self.rad,self.rad:self.c+self.rad,]
