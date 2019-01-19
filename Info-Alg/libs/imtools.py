@@ -45,7 +45,7 @@ class imres:
         # How many pixels we have to correct? Uncomment this if you want to monitor the change rate between iterations
         self.pixnum = len(maskpos[0])
         
-        # Padding the edges of image array with extra 0
+        # Padding the edges of image array with extra 0. Notation z is simply a historical symbol for the observed image
         self.z = np.zeros((self.r+2*radi,self.c+2*radi,self.ch), dtype=np.int16)
         self.z[radi:self.r+radi,radi:self.c+radi,] = im
         
