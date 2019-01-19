@@ -3,19 +3,21 @@ from copy import deepcopy
 
 class imres:
     """
-    imres(z, mask, cutoff = 1000, radi = 2, bits = 8)
+    imres(im, mask, cutoff = 1000, radi = 2, bits = 8)
     A class for restoring scratched image.
     
     Parameters
     ----------
-    z : image tensor comes from cv2.imread with the shape (W,H,channels)
-      User should aware that cv2.imread orders the color channels in BGR instead of RGB.
-      This is different from matplotlib.pyplot.imshow in general.
+    im : image array
+      Image array comes from cv2.imread with the shape (W,H,channels). User should
+      aware that cv2.imread orders the color channels in BGR instead of RGB. This is
+      different from matplotlib.pyplot.imshow in general.
     mask : a 2D array
-      Binary image, masked positions are indicated with 1
-    cutoff: a scalar, the truncated value for the energy function
+      Binary image, masked positions are indicated with 1.
+    cutoff: integer
+      The truncated value for the energy function.
     radi : integer
-      Radius of the circular Markov blanket. Unit is in pixels
+      Radius of the circular Markov blanket. Unit is in pixels.
     bits : integer
       Represents 2**bits color depth in each RGB channel. Sometimes it refers to 24-bit
       true color, total 1.67M colors.
@@ -24,7 +26,8 @@ class imres:
       
     Return
     ------
-    Restored image array with 3 color channels arranged as input
+    After running imres(...).restore() it returns the restored image array with 3 color
+    channels arranged as input.
     """
     
     def __init__(self, im, mask, cutoff = 1000, radi = 2, bits = 8):
@@ -46,7 +49,7 @@ class imres:
         self.z = np.zeros((self.r+2*radi,self.c+2*radi,self.ch), dtype=np.int16)
         self.z[radi:self.r+radi,radi:self.c+radi,] = im
         
-        # Generate markov blanket with radius = radi
+        # Generate Markov blanket with radius = radi
         self.blanket = self.gen_blanket(radi)
         
         # Generate cutoff criteria
@@ -82,7 +85,8 @@ class imres:
             
     def argminE(self,z,r,c):
         """
-        Finding which grey value that minimizes energy, not for stand-alone use
+        Return the grey value that minimizes energy at the given sratch position (r,c), not for stand-alone use
+        z: input image array
         """
         psi = np.minimum((((self.cbits - z[r-self.radi:r+(self.radi+1),c-self.radi:c+(self.radi+1)])*self.blanket)**2), \
                          self.cutoff).sum(axis=(1,-1))
@@ -90,13 +94,12 @@ class imres:
     
     def gen_blanket(self,radius, element=1): 
         """
-        Generate Markov blanket with given radius (how many neighbor pixels)
-        If the element not equals 1, it is used to generate the cutoff criteria
-        Not for stand-alone use
+        Generate circular Markov blanket with given radius (how many neighbor pixels).
+        If the element not equals 1, it is used to generate the cutoff criteria, not for stand-alone use
         """
         x, y = np.mgrid[0:2*radius+1,0:2*radius+1]
-        blanket = ((x - radius)**2 + (y - radius)**2) -(radius**2+1)
-        blanket[blanket>0] = 0
+        blanket = ((x-radius)**2 + (y-radius)**2) - (radius**2+1)
+        blanket[blanket > 0] = 0
         blanket[radius,radius] = 0
         return (np.abs(blanket/radius**2)*element).astype(np.float16)
     
@@ -105,7 +108,7 @@ class imres:
         """
         Calculate the change rate between the prior and posterior images, not for stand-alone use
         """
-        return np.sum(prior!=posterior)*100/(self.ch*self.pixnum)        
+        return np.sum(prior != posterior)*100/(self.ch*self.pixnum)        
         
     def status(self):
         """
