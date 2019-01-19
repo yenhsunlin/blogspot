@@ -3,7 +3,7 @@ from copy import deepcopy
 
 class imres:
     """
-    imres(im, mask, cutoff = 1000, radi = 2, bits = 8)
+    imres(im, mask, cutoff = 1000, radi = 3, bits = 8)
     A class for restoring scratched image.
     
     Parameters
@@ -30,7 +30,7 @@ class imres:
     channels arranged as input.
     """
     
-    def __init__(self, im, mask, cutoff = 1000, radi = 2, bits = 8):
+    def __init__(self, im, mask, cutoff = 1000, radi = 3, bits = 8):
         """
         Define inputs and parameters
         """        
@@ -78,7 +78,7 @@ class imres:
                 posterior[pos[0],pos[1],i] = self.argminE(self.z[:,:,i], pos[0], pos[1])
         
         # Calculate the change rate between previous and this iterations, uncomment it if you want to monitor it
-        #self.change = self.change_rate(self.z, posterior)
+        self.change = self.change_rate(self.z, posterior)
         
         # Update the prior by the posterior and can be used for the next iteration
         self.z = posterior
@@ -98,10 +98,9 @@ class imres:
         If the element not equals 1, it is used to generate the cutoff criteria, not for stand-alone use
         """
         x, y = np.mgrid[0:2*radius+1,0:2*radius+1]
-        blanket = ((x-radius)**2 + (y-radius)**2) - (radius**2+1)
-        blanket[blanket > 0] = 0
+        blanket = (((x - radius)**2 + (y - radius)**2) <= radius**2)*element
         blanket[radius,radius] = 0
-        return (np.abs(blanket/radius**2)*element).astype(np.float16)
+        return blanket
     
     # Monitor the change rate between iterations
     def change_rate(self,prior,posterior):
