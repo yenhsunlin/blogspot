@@ -74,7 +74,7 @@ class imres:
                 posterior[pos[0],pos[1],i] = self.argminE(self.z[:,:,i], pos[0], pos[1])
         
         # Calculate the change rate between previous and this iterations, uncomment it if you want to monitor it
-        self.change = self.change_rate(self.z, posterior)
+        self.change_rate(self.z, posterior)
         
         # Update the prior by the posterior and can be used for the next iteration
         self.z = posterior
@@ -124,4 +124,4 @@ class imres:
         """
         Calculate the change rate between the prior and posterior images, not for stand-alone use
         """
-        return np.sum(prior != posterior)*100/(self.ch*self.pixnum)        
+        self.change = np.sum(prior != posterior)*100/(self.ch*self.pixnum)        
