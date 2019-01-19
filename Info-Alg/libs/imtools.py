@@ -101,8 +101,7 @@ class imres:
         blanket = (((x - radius)**2 + (y - radius)**2) <= radius**2)*element
         blanket[radius,radius] = 0
         return blanket
-    
-    # Monitor the change rate between iterations
+
     def change_rate(self,prior,posterior):
         """
         Calculate the change rate between the prior and posterior images, not for stand-alone use
