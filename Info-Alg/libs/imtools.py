@@ -105,7 +105,7 @@ class imres:
         """
         Calculate the change rate between the prior and posterior images, not for stand-alone use
         """
-        return np.sum(prior!=posterior)*100/(3*self.pixnum)        
+        return np.sum(prior!=posterior)*100/(self.ch*self.pixnum)        
         
     def status(self):
         """
