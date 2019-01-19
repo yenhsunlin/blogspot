@@ -98,7 +98,7 @@ class imres:
     
     #-------------------------------------------------------------------------------------------------------#
     #                                                                                                       #           
-    #    Functions below only important in generating required parameters in the initialisation pricess,    #
+    #    Functions below only important in generating required parameters in the initialisation process,    #
     #    or targets to specific purpose. They are generally irrelevant to the restoration procedure later   #
     #                                                                                                       #
     #-------------------------------------------------------------------------------------------------------#
