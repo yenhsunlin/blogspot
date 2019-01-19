@@ -26,7 +26,7 @@ class imres:
       
     Return
     ------
-    After running imres(...).restore() it returns the restored image array with 3 color
+    After running imres(...).restore(), it returns the restored image array with 3 color
     channels arranged as input.
     """
     
@@ -36,7 +36,7 @@ class imres:
         """        
         self.r, self.c, self.ch = im.shape
         self.radi = radi
-        self.bits = int(bits)
+        bits = int(bits)
         
         # Deal with binary mask image: Value greater than 0 indicates the scratch positions
         maskpos = np.where(mask > 0)
@@ -50,17 +50,13 @@ class imres:
         self.z[radi:self.r+radi,radi:self.c+radi,] = im
         
         # Generate Markov blanket with radius = radi
-        self.blanket = self.gen_blanket(radi)
+        self.blanket = self.markov_blanket(radi)
         
         # Generate cutoff criteria
-        self.cutoff = np.repeat([self.gen_blanket(radi,cutoff)], 2**self.bits, axis=0)
+        self.cutoff = np.repeat([self.markov_blanket(radi,cutoff)], 2**bits, axis=0)
         
-        # Create a (5,5) color level
-        self.cbits = []
-        for i in range(2**self.bits):
-            x = np.full((2*radi+1,2*radi+1), i, dtype=np.int16)
-            self.cbits.append(x)
-        self.cbits = np.array(self.cbits)
+        # Create a array for all grey indices
+        self.cbits = self.grey_index(bits,radi)
         
         # Prior colors for the scratched pixels. Now self.z becomes the prior image
         self.z[maskpos[0]+radi,maskpos[1]+radi,] = np.random.randint(0,256,size=(len(maskpos[0]),self.ch))
@@ -88,11 +84,26 @@ class imres:
         Return the grey value that minimizes energy at the given sratch position (r,c), not for stand-alone use
         z: input image array
         """
+        # Psi values correspond to grey indices ordered in 0, 1, 2,...,255, e.g. 1st psi corresponds to grey index 0, 2nd to 1 and so on
         psi = np.minimum((((self.cbits - z[r-self.radi:r+(self.radi+1),c-self.radi:c+(self.radi+1)])*self.blanket)**2), \
                          self.cutoff).sum(axis=(1,-1))
+        # Return the index which has the minimum Psi value, that index is the grey value minimizes the energy function
         return np.argmin(psi)
     
-    def gen_blanket(self,radius, element=1): 
+    def status(self):
+        """
+        Return the current status of the restored image
+        """
+        return self.z[self.radi:self.r+self.radi,self.radi:self.c+self.radi,]
+    
+    #-------------------------------------------------------------------------------------------------------#
+    #                                                                                                       #           
+    #    Functions below only important in generating required parameters in the initialisation pricess,    #
+    #    or targets to specific purpose. They are generally irrelevant to the restoration procedure later   #
+    #                                                                                                       #
+    #-------------------------------------------------------------------------------------------------------#
+    
+    def markov_blanket(self,radius, element=1): 
         """
         Generate circular Markov blanket with given radius (how many neighbor pixels).
         If the element not equals 1, it is used to generate the cutoff criteria, not for stand-alone use
@@ -101,15 +112,16 @@ class imres:
         blanket = (((x - radius)**2 + (y - radius)**2) <= radius**2)*element
         blanket[radius,radius] = 0
         return blanket
-
+    
+    def grey_index(self,bits,radi):
+        cbits = []
+        for i in range(2**bits):
+            x = np.full((2*radi+1,2*radi+1), i, dtype=np.int16)
+            cbits.append(x)
+        return np.array(cbits)
+    
     def change_rate(self,prior,posterior):
         """
         Calculate the change rate between the prior and posterior images, not for stand-alone use
         """
         return np.sum(prior != posterior)*100/(self.ch*self.pixnum)        
-        
-    def status(self):
-        """
-        Return the current status of the restored image
-        """
-        return self.z[self.radi:self.r+self.radi,self.radi:self.c+self.radi,]
