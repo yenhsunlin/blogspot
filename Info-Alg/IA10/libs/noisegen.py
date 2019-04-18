@@ -1,0 +1,89 @@
+import numpy as np
+from copy import copy
+
+
+def gaussian_noise(im, mean = 0, sd = 20):
+    """
+    Function for generating Gaussian noise on data.
+    
+    Parameter
+    ---------
+    im : array-like
+    mean : noise mean
+    sd : Noise standard deviation
+    
+    Output
+    ------
+    Array-like, original data plus Gaussian noise
+    """
+    im = np.asarray(im)
+    noise = np.random.normal(loc = mean, scale = sd, size = im.shape)
+    noise_im = np.clip(im + noise, 0, 255) # chop values outside [0,255]
+    return np.uint8(noise_im)
+
+
+def uniform_noise(im, amp = 10):
+    """
+    Function for generating uniform noise with zero mean
+    on data
+    
+    Parameter
+    ---------
+    im : array-like
+    amp : positive scalar, noise amplitude
+    
+    Output
+    ------
+    Array-like, original data plus uniform noise
+    """
+    im = np.asarray(im)
+    noise = np.random.uniform(low = -amp, high = amp, size = im.shape)
+    noise_im = np.clip(im + noise, 0, 255)
+    return np.uint8(noise_im)
+
+
+def poisson_noise(im, a = 5):
+    """
+    Function for generating Poisson noise on data
+    
+    Parameter
+    ---------
+    im : array-like
+    a : amount of Poisson noise
+    
+    Output
+    ------
+    Array-like, original data plus Poisson noise
+    """
+    # Poisson noise can be modeled by Gaussian dist. Poi~Gauss(num*t,num*t)
+    # where t is the unit time. Here we set t = 1
+    im = np.asarray(im)
+    noise = np.random.normal(loc = a, scale = a, size = im.shape)
+    noise_im = np.clip(im + noise, 0, 255) # chop values outside [0,255]
+    return np.uint8(noise_im)
+
+
+def saltpepper_noise(im, noi_f = 0.2, pep_f = 0.5):
+    """
+    Function for generating salt-and-pepper noise on data
+    
+    Parameter
+    ---------
+    im : array-like
+    noi_f : Fraction of the image having salt-and-peppr noise
+    pep_f : Fraction of the noise being pepper, while the
+            remaining 1-pep_f will be salt
+    
+    Output
+    ------
+    Array-like, original data plus salt-and-pepper noise
+    """
+    im = np.asarray(im)
+    img = im.copy()
+    if (0 <= noi_f <= 1) and (0 <= pep_f <= 1):
+        token = np.random.choice(['pep','salt',0],p=[noi_f*pep_f,noi_f*(1-pep_f),1-noi_f],size=img.shape[:2])
+        img[token == 'pep'] = 0
+        img[token == 'salt'] = 255
+        return np.uint8(img)
+    else:
+        raise ValueError('Noise and salt fractions must lie within 0 and 1.')
