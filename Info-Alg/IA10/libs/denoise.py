@@ -15,11 +15,11 @@ class denoise_det:
         cutoff : truncated value
         """
         # Determing the input is color or grey
-        if len(im.shape) == 3:
+        if len(im.shape) == 3: # Color
             self.im = np.pad(im, ((1,1),(1,1),(0,0)), mode = 'constant')
             self.row, self.col, self.ch = self.im.shape
             self.color = True
-        elif len(im.shape) == 2:
+        elif len(im.shape) == 2: # Grey
             self.im = np.pad(im, 1, mode = 'constant')
             self.row, self.col = self.im.shape
             self.color = False
@@ -28,7 +28,13 @@ class denoise_det:
         
         self.lam = lam
         self.cutoff = cutoff
-        self.prior = np.int32(self.im.copy())
+        # Posterior image. It will be replaced by the following self.denoise_im after
+        # compeleting a full denoising process. This one is used for extracting the
+        # neighborhood states of every pixels. Unlike self.denoise_im, it cannot be 
+        # subject to change during the denoising process until the process is done.
+        self.posterior = np.int32(self.im.copy())
+        # Create an empty array for storing denoised image.
+        # Its pixels will update themselves during the denoising process dynamic. 
         self.denoise_im = np.int32(np.zeros_like(self.im))
 
         
@@ -36,18 +42,24 @@ class denoise_det:
         """
         Initializing denoise process
         """
-        if self.color:
+        if self.color: # If image is color
             for ch in range(self.ch):
                 for r in range(1,self.row-1):
                     for c in range(1,self.col-1):
-                        self.denoise_im[r,c,ch] = np.argmin(energy(self.im[r,c,ch],self.prior[r-1:r+2,c-1:c+2,ch],self.lam,self.cutoff))
-            self.prior = self.denoise_im
+                        # Calculate the energies for total 256 pixel values and pick up
+                        # the value with minimum energy.
+                        # This one is the correct pixel value statistically and will be
+                        # saved to self.denoise_im[r,c,ch]
+                        self.denoise_im[r,c,ch] = np.argmin(energy(self.im[r,c,ch],self.posterior[r-1:r+2,c-1:c+2,ch],self.lam,self.cutoff))
+            # Updating the posterior image by the complete self.denoise_im.
+            # It will be used for calculating neighborhood state in the next iteration.
+            self.posterior = self.denoise_im
             
-        else:
+        else: # If image is grey
             for r in range(1,self.row-1):
                 for c in range(1,self.col-1):
-                    self.denoise_im[r,c] = np.argmin(energy(self.im[r,c],self.prior[r-1:r+2,c-1:c+2],self.lam,self.cutoff))
-            self.prior = self.denoise_im
+                    self.denoise_im[r,c] = np.argmin(energy(self.im[r,c],self.posterior[r-1:r+2,c-1:c+2],self.lam,self.cutoff))
+            self.posterior = self.denoise_im
     
     def status(self):
         """
@@ -68,7 +80,8 @@ class denoise_prob:
         lam : lambda for penalty
         cutoff : truncated value
         """
-        # Determing the input is color or grey
+        # All the comments on this class are the same as denoise_det except one in the
+        # denoise() function below
         if len(im.shape) == 3:            
             self.im = np.pad(im, ((1,1),(1,1),(0,0)), mode = 'constant')
             self.row, self.col, self.ch = self.im.shape
@@ -82,7 +95,7 @@ class denoise_prob:
         
         self.lam = lam
         self.cutoff = cutoff
-        self.prior = np.int32(self.im.copy())
+        self.posterior = np.int32(self.im.copy())
         self.denoise_im = np.int32(np.zeros_like(self.im))
 
         
@@ -94,16 +107,18 @@ class denoise_prob:
             for ch in range(self.ch):
                 for r in range(1,self.row-1):
                     for c in range(1,self.col-1):
-                        ene = energy(self.im[r,c,ch],self.prior[r-1:r+2,c-1:c+2,ch],self.lam,self.cutoff)
+                        # Calculating the energies for total 256 pixel values
+                        ene = energy(self.im[r,c,ch],self.posterior[r-1:r+2,c-1:c+2,ch],self.lam,self.cutoff)
+                        # We sample the pixel value from the probabilities given by the energy array
                         self.denoise_im[r,c,ch] = pix_sampling(ene)
-            self.prior = self.denoise_im
+            self.posterior = self.denoise_im
             
         else:
             for r in range(1,self.row-1):
                 for c in range(1,self.col-1):
-                    ene = energy(self.im[r,c],self.prior[r-1:r+2,c-1:c+2],self.lam,self.cutoff)
+                    ene = energy(self.im[r,c],self.posterior[r-1:r+2,c-1:c+2],self.lam,self.cutoff)
                     self.denoise_im[r,c] = pix_sampling(ene)
-            self.prior = self.denoise_im
+            self.posterior = self.denoise_im
     
     def status(self):
         """
@@ -116,7 +131,6 @@ def energy(center, nei, lam, cutoff, pixels = np.arange(256)):
     """
     Calculating the energies of 256 pixel values for the center pixel in the box, Eq. (7)
     """
-    nei = np.asarray(nei)
     Phi = (pixels-center)**2
     Psi = lam*(np.clip((pixels-nei[0,1])**2,0,cutoff) +   \
                 np.clip((pixels-nei[1,0])**2,0,cutoff) +  \
@@ -139,7 +153,7 @@ def pix_sampling(ene):
     ------
     Scalar, the possible pixel value
     """
-    ener = np.asarray(ene-np.min(ene))
+    ener = ene-np.min(ene)
     numerator = np.exp(-ener)
     denominator = np.sum(numerator)
     prob = numerator/denominator # Eq. (10)

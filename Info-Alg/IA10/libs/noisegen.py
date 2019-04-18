@@ -78,12 +78,13 @@ def saltpepper_noise(im, noi_f = 0.2, pep_f = 0.5):
     ------
     Array-like, original data plus salt-and-pepper noise
     """
-    im = np.asarray(im)
-    img = im.copy()
+    img = (np.asarray(im)).copy()
+    #img = im.copy()
     if (0 <= noi_f <= 1) and (0 <= pep_f <= 1):
-        token = np.random.choice(['pep','salt',0],p=[noi_f*pep_f,noi_f*(1-pep_f),1-noi_f],size=img.shape[:2])
-        img[token == 'pep'] = 0
-        img[token == 'salt'] = 255
+        # Tokens 0 for pepper, 255 for pepper, 1 for nothing
+        token = np.random.choice([0,255,1],p=[noi_f*pep_f,noi_f*(1-pep_f),1-noi_f],size=img.shape[:2])
+        img[token == 0] = 0
+        img[token == 255] = 255
         return np.uint8(img)
     else:
         raise ValueError('Noise and salt fractions must lie within 0 and 1.')
