@@ -172,7 +172,6 @@ def denoise_multif(imls):
     Output
     ------
     A denoised image array
-    
     """
     im = np.float32(imls)
     clean = np.sum(im,axis=0)/len(im)
