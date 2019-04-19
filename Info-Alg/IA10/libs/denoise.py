@@ -53,8 +53,7 @@ class denoise_det:
                         self.denoise_im[r,c,ch] = np.argmin(energy(self.im[r,c,ch],self.posterior[r-1:r+2,c-1:c+2,ch],self.lam,self.cutoff))
             # Updating the posterior image by the complete self.denoise_im.
             # It will be used for calculating neighborhood state in the next iteration.
-            self.posterior = self.denoise_im
-            
+            self.posterior = self.denoise_im            
         else: # If image is grey
             for r in range(1,self.row-1):
                 for c in range(1,self.col-1):
@@ -111,8 +110,7 @@ class denoise_prob:
                         ene = energy(self.im[r,c,ch],self.posterior[r-1:r+2,c-1:c+2,ch],self.lam,self.cutoff)
                         # We sample the pixel value from the probabilities given by the energy array
                         self.denoise_im[r,c,ch] = pix_sampling(ene)
-            self.posterior = self.denoise_im
-            
+            self.posterior = self.denoise_im            
         else:
             for r in range(1,self.row-1):
                 for c in range(1,self.col-1):
