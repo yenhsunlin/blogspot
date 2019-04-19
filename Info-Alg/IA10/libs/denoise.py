@@ -34,7 +34,7 @@ class denoise_det:
         # subject to change during the denoising process until the process is done.
         self.posterior = np.int32(self.im.copy())
         # Create an empty array for storing denoised image.
-        # Its pixels will update themselves during the denoising process dynamic. 
+        # Its pixels will be updated dynamically during the running of denoising process. 
         self.denoise_im = np.int32(np.zeros_like(self.im))
 
         
