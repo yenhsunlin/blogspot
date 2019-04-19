@@ -4,7 +4,7 @@ from copy import copy
 
 class denoise_det:
 
-    def __init__(self, im, lam = 1, cutoff = 1000):
+    def __init__(self, im, lam = 1, cutoff = 1000, bit = 8):
         """
         Class for denoising noisy image. This one uses determistic algorithm.
         
@@ -13,6 +13,7 @@ class denoise_det:
         im : Noisy image
         lam : lambda for penalty
         cutoff : truncated value
+        bit : color-depth, default is 8 and corresponds to 256 colors in each channel
         """
         # Determing the input im is color or grey
         if len(im.shape) == 3: # Color
@@ -28,14 +29,15 @@ class denoise_det:
         
         self.lam = lam
         self.cutoff = cutoff
+        self.bit = np.arange(2**bit)
         # Posterior image. It will be replaced by the following self.denoise_im after
         # compeleting a full denoising process. This one is used for extracting the
         # neighborhood states of every pixels. Unlike self.denoise_im, it cannot be 
         # subject to change during the denoising process until the process is done.
-        self.posterior = np.int32(self.im.copy())
+        self.posterior = np.array(self.im, dtype = np.int32)
         # Create an empty array for storing denoised image.
         # Its pixels will be updated dynamically during the running of denoising process. 
-        self.denoise_im = np.int32(np.zeros_like(self.im))
+        self.denoise_im = np.zeros_like(self.im, dtype = np.int32)
 
         
     def denoise(self):
@@ -53,7 +55,7 @@ class denoise_det:
                         self.denoise_im[r,c,ch] = np.argmin(                                           \
                                                             energy(self.im[r,c,ch],                    \
                                                                    self.posterior[r-1:r+2,c-1:c+2,ch], \
-                                                                   self.lam, self.cutoff)              \
+                                                                   self.lam, self.cutoff, self.bit)    \
                                                            )
             # Updating the posterior image by the complete self.denoise_im.
             # It will be used for calculating neighborhood state in the next iteration.
@@ -64,7 +66,7 @@ class denoise_det:
                     self.denoise_im[r,c] = np.argmin(                                        \
                                                      energy(self.im[r,c],                    \
                                                             self.posterior[r-1:r+2,c-1:c+2], \
-                                                            self.lam, self.cutoff)           \
+                                                            self.lam, self.cutoff, self.bit) \
                                                     )
             self.posterior = self.denoise_im.copy()
     
@@ -72,12 +74,12 @@ class denoise_det:
         """
         Return current status of denoised image
         """
-        return np.uint8(self.denoise_im[1:self.row-1,1:self.col-1])
+        return self.denoise_im[1:self.row-1,1:self.col-1]
 
 
 class denoise_prob:
 
-    def __init__(self, im, lam = 1, cutoff = 1000):
+    def __init__(self, im, lam = 1, cutoff = 1000, bit = 8):
         """
         Class for denoising noisy image. This one uses probabilistic algorithm.
         
@@ -86,6 +88,7 @@ class denoise_prob:
         im : Noisy image
         lam : lambda for penalty
         cutoff : truncated value
+        bit : color-depth, default is 8 and corresponds to 256 colors in each channel
         """
         # All the comments on this class are the same as denoise_det except one in the
         # denoise() function below
@@ -102,8 +105,9 @@ class denoise_prob:
         
         self.lam = lam
         self.cutoff = cutoff
-        self.posterior = np.int32(self.im.copy())
-        self.denoise_im = np.int32(np.zeros_like(self.im))
+        self.bit = np.arange(2**bit)
+        self.posterior = np.array(self.im, dtype = np.int32)
+        self.denoise_im = np.zeros_like(self.im, dtype = np.int32)
 
         
     def denoise(self):
@@ -116,7 +120,7 @@ class denoise_prob:
                     for c in range(1,self.col-1):
                         # Calculating the energies for total 256 pixel values
                         ene = energy(self.im[r,c,ch], self.posterior[r-1:r+2,c-1:c+2,ch], \
-                                     self.lam, self.cutoff)
+                                     self.lam, self.cutoff, self.bit)
                         # We sample the pixel value from the probabilities given by the energy array
                         self.denoise_im[r,c,ch] = pix_sampling(ene)
             self.posterior = self.denoise_im.copy()            
@@ -124,7 +128,7 @@ class denoise_prob:
             for r in range(1,self.row-1):
                 for c in range(1,self.col-1):
                     ene = energy(self.im[r,c], self.posterior[r-1:r+2,c-1:c+2], \
-                                 self.lam, self.cutoff)
+                                 self.lam, self.cutoff, self.bit)
                     self.denoise_im[r,c] = pix_sampling(ene)
             self.posterior = self.denoise_im.copy()
     
@@ -132,7 +136,7 @@ class denoise_prob:
         """
         Return current status of denoised image
         """
-        return np.uint8(self.denoise_im[1:self.row-1,1:self.col-1])
+        return self.denoise_im[1:self.row-1,1:self.col-1]
 
 
 def energy(center, nei, lam, cutoff, pixels = np.arange(256)):
@@ -183,4 +187,4 @@ def denoise_multif(imls):
     """
     im = np.float32(imls)
     clean = np.sum(im,axis=0)/len(im)
-    return np.uint8(np.clip(clean, 0, 255))
+    return np.uint32(np.clip(clean, 0, 255))
