@@ -38,7 +38,6 @@ class denoise_det:
         # Create an empty array for storing denoised image.
         # Its pixels will be updated dynamically during the running of denoising process. 
         self.denoise_im = np.zeros_like(self.im, dtype = np.int32)
-
         
     def denoise(self):
         """
@@ -108,7 +107,6 @@ class denoise_prob:
         self.bit = np.arange(2**bit)
         self.posterior = np.array(self.im, dtype = np.int32)
         self.denoise_im = np.zeros_like(self.im, dtype = np.int32)
-
         
     def denoise(self):
         """
