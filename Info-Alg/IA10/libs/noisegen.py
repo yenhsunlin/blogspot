@@ -16,10 +16,10 @@ def gaussian_noise(im, mean = 0, sd = 20):
     ------
     Array-like, original data plus Gaussian noise
     """
-    im = np.asarray(im)
+    im = np.array(im)
     noise = np.random.normal(loc = mean, scale = sd, size = im.shape)
     noise_im = np.clip(im + noise, 0, 255) # chop values outside [0,255]
-    return np.uint8(noise_im)
+    return noise_im
 
 
 def uniform_noise(im, amp = 10):
@@ -36,10 +36,10 @@ def uniform_noise(im, amp = 10):
     ------
     Array-like, original data plus uniform noise
     """
-    im = np.asarray(im)
+    im = np.array(im)
     noise = np.random.uniform(low = -amp, high = amp, size = im.shape)
     noise_im = np.clip(im + noise, 0, 255)
-    return np.uint8(noise_im)
+    return noise_im
 
 
 def poisson_noise(im, a = 5):
@@ -57,10 +57,10 @@ def poisson_noise(im, a = 5):
     """
     # Poisson noise can be modeled by Gaussian dist. Poi~Gauss(num*t,num*t)
     # where t is the unit time. Here we set t = 1
-    im = np.asarray(im)
+    im = np.array(im)
     noise = np.random.normal(loc = a, scale = a, size = im.shape)
     noise_im = np.clip(im + noise, 0, 255) # chop values outside [0,255]
-    return np.uint8(noise_im)
+    return noise_im
 
 
 def saltpepper_noise(im, noi_f = 0.2, pep_f = 0.5):
@@ -78,13 +78,13 @@ def saltpepper_noise(im, noi_f = 0.2, pep_f = 0.5):
     ------
     Array-like, original data plus salt-and-pepper noise
     """
-    img = (np.asarray(im)).copy()
+    img = np.array(im)
     #img = im.copy()
     if (0 <= noi_f <= 1) and (0 <= pep_f <= 1):
         # Tokens 0 for pepper, 255 for salt, 1 for doing nothing
         token = np.random.choice([0,255,1],p=[noi_f*pep_f,noi_f*(1-pep_f),1-noi_f],size=img.shape[:2])
         img[token == 0] = 0
         img[token == 255] = 255
-        return np.uint8(img)
+        return img
     else:
         raise ValueError('Noise and salt fractions must lie within 0 and 1.')
