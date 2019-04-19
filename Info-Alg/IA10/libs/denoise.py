@@ -163,10 +163,10 @@ def pix_sampling(ene):
     ------
     Scalar, the possible pixel value
     """
-    ener = ene-np.min(ene)
+    ener = ene - np.min(ene)  # minus np.min(ene) make sure the exponetial does not exceed machine precision
     numerator = np.exp(-ener)
     denominator = np.sum(numerator)
-    prob = numerator/denominator # Eq. (10)
+    prob = numerator/denominator  # Eq. (10)
     return np.argmax(np.random.multinomial(1,prob))
 
 
