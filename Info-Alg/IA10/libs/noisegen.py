@@ -81,7 +81,7 @@ def saltpepper_noise(im, noi_f = 0.2, pep_f = 0.5):
     img = (np.asarray(im)).copy()
     #img = im.copy()
     if (0 <= noi_f <= 1) and (0 <= pep_f <= 1):
-        # Tokens 0 for pepper, 255 for pepper, 1 for nothing
+        # Tokens 0 for pepper, 255 for salt, 1 for doing nothing
         token = np.random.choice([0,255,1],p=[noi_f*pep_f,noi_f*(1-pep_f),1-noi_f],size=img.shape[:2])
         img[token == 0] = 0
         img[token == 255] = 255
