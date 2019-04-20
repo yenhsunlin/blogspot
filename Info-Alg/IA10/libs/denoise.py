@@ -142,10 +142,14 @@ def energy(center, nei, lam, cutoff, pixels = np.arange(256)):
     Calculating the energies of 256 pixel values for the center pixel in the box, Eq. (7)
     """
     Phi = (pixels-center)**2
-    Psi = lam*(np.clip((pixels-nei[0,1])**2, 0, cutoff) +   \
+    Psi = lam*(np.clip((pixels-nei[0,0])**2, 0, cutoff) +   \
+                np.clip((pixels-nei[0,1])**2, 0, cutoff) +  \
+                np.clip((pixels-nei[0,2])**2, 0, cutoff) +  \
                 np.clip((pixels-nei[1,0])**2, 0, cutoff) +  \
                 np.clip((pixels-nei[1,2])**2, 0, cutoff) +  \
-                np.clip((pixels-nei[2,1])**2, 0, cutoff))
+                np.clip((pixels-nei[2,0])**2, 0, cutoff) +  \
+                np.clip((pixels-nei[2,1])**2, 0, cutoff) +  \
+                np.clip((pixels-nei[2,2])**2, 0, cutoff))
     return (Psi+Phi)
 
 
